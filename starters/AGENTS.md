@@ -38,5 +38,19 @@ Guidance for AI agents working in this project. Read at session start.
 ## Multi-vendor / multi-agent
 - **This file is canonical.** Other agent-specific files (CLAUDE.md, .cursorrules, etc.) should reference this one rather than duplicate. If you find them out of sync, flag it.
 
+## Project-specific DO and DO NOT
+
+Most of the rules above are generic. Add a per-project section here listing things specific to *this* codebase or workflow — judgment calls that need a written reminder. (Hard guarantees that must always hold belong in hooks or permission settings, not here.)
+
+**DO:**
+- (example) Use the project's `make test` target rather than calling pytest directly.
+- (example) Read `docs/architecture.md` before touching the auth module.
+
+**DO NOT:**
+- (example) Don't add new top-level dependencies without asking.
+- (example) Don't reformat files in `vendor/` or `node_modules/`.
+
+Replace these examples with rules specific to your project. Empty bullets are a signal that the section hasn't been customized — fill it in or delete it.
+
 ## When in doubt
 Ask. Asking is cheap; undoing isn't.

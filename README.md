@@ -6,6 +6,8 @@ A living set of working notes on how to use AI agents effectively in engineering
 
 Engineers and engineering leaders adopting AI agents in real work — past the chat-only and IDE-autocomplete phase, into multi-step execution, clean-context separation, and orchestrated workflows. These docs assume you know what an LLM is. They are not vendor tutorials, not AI-101 material, and not a comprehensive textbook. None of this is secret knowledge — any engineer who spends enough time in the trenches with AI agents will arrive at most of it on their own. Writing it down is a head start: pattern-matching on what's already worked, instead of re-deriving each piece from scratch.
 
+Adjacent audiences will find most of this useful too — product managers, designers, ops folks, founders, and analysts using agentic tools (Claude Code, Codex, Cursor, etc.) for substantive multi-step work. The judgment-level material in [`working-with-ai.md`](working-with-ai.md) and most operational patterns generalize beyond code; the testing and service-architecture pieces are engineering-specific.
+
 For the fuller framing of why these docs exist and what they're for, see [`best-practices.md`](best-practices.md#1-why-this-doc-exists).
 
 ## What's here

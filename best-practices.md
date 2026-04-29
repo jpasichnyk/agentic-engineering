@@ -14,7 +14,7 @@ This is a living doc. "Written down" does not mean "frozen." The field changes q
 
 ### 1. Manage context aggressively
 
-Quality of agent output degrades as context grows. Even at 1M tokens, degradation is reliable past roughly 50% fill; rules set in CLAUDE.md / AGENTS.md get forgotten past ~100k tokens. Task size is part of the same problem — one over-large task accumulates as much context as several sequential ones in the same session, with the same rule-forgetting and quality drops. Cost rises, turns get slower, and — critically — mixing planning, building, testing, and verification in one session creates failure modes that are hard to detect, like an agent adjusting tests to make itself succeed rather than catching a real regression. Stale, mixed-purpose context is worse than a smaller, curated one.
+Quality of agent output degrades as context grows. Long sessions degrade quality regardless of how big the window claims to be — models start forgetting rules from earlier in the session, conflate related concepts, and become more confident about things that aren't true. Task size is part of the same problem — one over-large task accumulates as much context as several sequential ones in the same session, with the same rule-forgetting and quality drops. Cost rises, turns get slower, and — critically — mixing planning, building, testing, and verification in one session creates failure modes that are hard to detect, like an agent adjusting tests to make itself succeed rather than catching a real regression. Stale, mixed-purpose context is worse than a smaller, curated one.
 
 We default to clean separation across phases: plan in one session, build in another, verify in a third. Two implementations both work — subagent forking with curated context handed off explicitly, or human orchestration via copy-pasting the finished plan into a fresh session. For the how-to, see [Plan-Then-Execute](field-guide.md#plan-then-execute) and [TDD with Separated Agents](field-guide.md#tdd-with-separated-agents). The guiding instinct is "curate, don't pile on" — what you give the agent matters more than how big the window is.
 
@@ -24,7 +24,16 @@ Permissions are part of the same surface. Hand the agent the context it needs an
 
 How much latitude to give an agent depends on two axes. The first is *phase of work*: design, discovery, and planning benefit from HITL — the back-and-forth is the output, not overhead to eliminate. Autonomous execution belongs once the plan is locked. The second axis is *blast radius*: how bad is the worst case? Irreversible operations — production deploys, schema migrations, force-pushes, hard deletes — demand tight controls regardless of how confident the agent sounds. Reversible local work — tests, feature-branch code, docs — earns more latitude.
 
-The two axes multiply, and that multiplication is the insight worth internalizing. A destructive action inside a planning conversation is usually fine: the agent is describing what it would do, and nothing executes. The same action inside a long-running autonomous loop is dangerous. We set autonomy at the *intersection*, not at either axis alone. In practice that means enumerating explicit allow and deny lists per project before kicking off autonomous work — especially for CLIs with destructive subcommands. Prose rules drift as context fills; tool-level enforcement does not. See [Permissions and Allowlists](field-guide.md#permissions-and-allowlists) and [Hook-Based Enforcement](field-guide.md#hook-based-enforcement).
+The two axes multiply, and that multiplication is the insight worth internalizing. A destructive action inside a planning conversation is usually fine: the agent is describing what it would do, and nothing executes. The same action inside a long-running autonomous loop is dangerous. We set autonomy at the *intersection*, not at either axis alone. In practice that means enumerating explicit allow and deny lists per project before kicking off autonomous work — especially for CLIs with destructive subcommands. Prose rules drift as context fills; tool-level enforcement does not.
+
+**In practice:**
+- Planning conversations: HITL, back-and-forth — the conversation IS the work
+- Execution from a finalized plan: autonomous, fresh session
+- Production mutations (deploys, deletes, schema changes): named human approval, every time
+- Read-only access (logs, queries, config inspection): open by default; friction here is a tax
+- Encode these via permissions and hooks; written instructions drift as context fills
+
+See [Permissions and Allowlists](field-guide.md#permissions-and-allowlists) and [Hook-Based Enforcement](field-guide.md#hook-based-enforcement).
 
 ### 3. Verify with fresh eyes
 
@@ -34,21 +43,31 @@ A fresh-context reviewer — same model or different — sees only what a human 
 
 ### 4. Service boundaries enable agentic looseness
 
-The amount of human review an AI-generated change requires scales inversely with how well-bounded that change is. When a service has strong contracts — explicit API surfaces, integration tests, and production smoke or regression tests — the question shifts from "did the agent write the right code?" to "does the service still honor its contract?" That second question is mechanical. The first requires a human to hold the full intent of the change in their head and reason through every line. Architectural investment in service boundaries is, directly, an investment in how fast and safely agentic work can move.
+The cleaner your service boundaries are, the more aggressive AI work can be. Strong contracts, published interfaces, integration tests, and production smoke or regression tests turn "did the agent write the right code?" into "does the service still honor its contract?" — a mechanical question with a mechanical answer. Inside a well-bounded service, internal style and detailed design choices matter less; the agent has room to refactor, rewrite, or add features without line-by-line human review via [Run-and-Iterate Loop](field-guide.md#run-and-iterate-loop) and [Pin-Then-Modify](field-guide.md#pin-then-modify).
 
-Inside a well-bounded service, internal style and detailed design choices matter less — the agent has room to operate via [Run-and-Iterate Loop](field-guide.md#run-and-iterate-loop) and [Pin-Then-Modify](field-guide.md#pin-then-modify) without close oversight of every decision; the contract tests answer what matters. Without that isolation, every change risks cross-cutting effects, and human review becomes a bottleneck that scales with agentic output. The investment in boundaries and contract coverage is not just good software hygiene — it is the enabling investment for agentic engineering at scale.
+The reverse is also true: tightly coupled, undocumented code is an AI tax. Every agent change risks cross-cutting effects no test catches, and human review becomes a bottleneck that scales with agentic output. This isn't a mandate to redo your architecture — it's a gradient. The cleaner your boundaries today, the more AI can multiply your effort tomorrow; the more tangled, the more carefully every AI change has to be inspected. For the concrete recipe of what "agent-friendly boundaries" looks like in practice, see [Agent-Readable Service Documentation](field-guide.md#agent-readable-service-documentation).
 
 ### 5. Tests are leverage
 
-Tests are not a tax on agentic work — they are what makes agentic work safe and fast. The most important habit is [Pin-Then-Modify](field-guide.md#pin-then-modify): before changing existing code, capture its current behavior in tests. Then make the change. Then confirm the tests are still green. An agent cannot reason about "what should still work" — it doesn't have that institutional knowledge — but a test suite does. Pinning behavior before modification converts that unknown into a mechanical check the agent can act on.
+Tests are not a tax on agentic work — they are what makes agentic work safe and fast. Three common workflows each map to a different pattern:
+
+- **Refactors and rewrites of existing code** — start with [Pin-Then-Modify](field-guide.md#pin-then-modify): capture current behavior in tests, make the change, confirm the pinning tests stay green. The agent can't reason about "what should still work"; the test suite can.
+- **New features** — [TDD with Separated Agents](field-guide.md#tdd-with-separated-agents): a test-writing agent (clean context) writes failing tests against the spec; a separate implementation agent makes them pass. The separation prevents the implementer from gaming its own tests.
+- **Bug fixes** — start by writing a test that captures the bug (it should fail in the same way the bug fails), then TDD the fix until that test passes alongside everything else. Bugs without a captured test recur; bugs with one don't.
 
 Narrow unit tests give the agent a narrow window. To converge on working software, push the test surface further: integration tests, browser tests via Playwright or Selenium, Docker-based end-to-end loops. Real failures from real execution give the agent the feedback it needs. The [Run-and-Iterate Loop](field-guide.md#run-and-iterate-loop) is built around this: agent runs tests, sees failures, makes changes, reruns, converges. That loop is more powerful than any single round of code review because it is objective, repeatable, and immune to the same blind spots that produced the bug in the first place.
 
 ### 6. Enforce with hooks and config, not prose
 
-Prose rules in CLAUDE.md, AGENTS.md, and system prompts are advisory. They are read once at context load, then diluted as the session accumulates tokens — the same degradation described in Principle 1. A rule written at the top of your project file has no guarantee of being honored in turn 80. The agent is not being deceptive; the rule just no longer has weight in a context that has moved on. This is the prose-rule-bleed problem, and it is invisible: you will not know the rule was forgotten until something breaks.
+Agents forget rules. As context fills with prior turns and partial results, instructions you wrote at the start of a session — in CLAUDE.md, AGENTS.md, or the prompt — drift out of attention. By the second half of a long session, the rule that was at the top of the file might as well not be there. This is the same context-growth phenomenon as Principle 1, applied to safety rules.
 
-Hooks and permission settings are deterministic. A pre-commit hook that blocks `git pull --rebase` fires every time, regardless of what the agent remembers. An allowlist that restricts file access to `~/projects` does not depend on the agent's current context window. When you can encode a rule mechanically — don't touch files outside the project root, always run the linter before commit, block destructive subcommands of a CLI — encode it that way and remove it from prose. Reserve prose for genuinely contextual judgment calls: style preferences, voice, when to pause and ask. The reliability gap matters: a hook that fails to fire is a bug you can detect; a prose rule that silently fails is invisible. See [Hook-Based Enforcement](field-guide.md#hook-based-enforcement) and [Permissions and Allowlists](field-guide.md#permissions-and-allowlists).
+When a rule has to hold, encode it structurally rather than asking the agent to comply. Two layers, both stronger than instructions alone:
+
+**What the agent can invoke** — hooks, permissions, allow/deny lists, scoped credentials, API keys with narrow permissions. The platform enforces what the agent is allowed to call. Cheap to set up; cheap to maintain. See [Permissions and Allowlists](field-guide.md#permissions-and-allowlists) and [Hook-Based Enforcement](field-guide.md#hook-based-enforcement).
+
+**What the agent can reach** — restricted user accounts, filesystem boundaries, network access policies (no egress, or allowlisted destinations only), container or VM isolation, no secrets in environment scope. Higher setup cost; pays off when the blast radius is large or the stakes are high. See [Runtime and Environment Isolation](field-guide.md#runtime-and-environment-isolation).
+
+The two layers compose. Layer 1 protects against the agent invoking a bad command. Layer 2 protects against the agent finding a way to do something bad regardless. For low-stakes work in a worktree, Layer 1 is usually enough. For production work, customer data, or infra mutations, both layers earn their cost.
 
 ## 3. Contributing and Sharing
 
@@ -59,7 +78,7 @@ This is opinionated guidance, not policy. The bar for adding a new pattern or pl
 **How to contribute:**
 
 - If a prompt, setup, or workflow worked unusually well, write it up as a pattern or playbook in [`field-guide.md`](field-guide.md). A short description plus the steps you followed is enough to start.
-- If something failed — a model got confused, an agent went sideways, a setup cost you time — document what went wrong and what you'd do differently. Failure notes are just as useful as wins.
+- If something failed — a model got confused, an agent went sideways, a setup cost you time — document what went wrong and what you'd do differently. Failure notes are just as useful as wins. **For specific agent failures (missed a spec, didn't understand a package, repeated a mistake), follow [Closing the Agent Failure Loop](field-guide.md#closing-the-agent-failure-loop) — fix the docs/skills/instructions, then verify with a fresh agent.**
 - If something here is out of date or wrong, open a PR with the correction and a one-line explanation. For patterns and playbooks, the bar is low; for a core principle in §2, include the reasoning.
 - If you hit a near-miss that a hook or allowlist could have prevented, add it to the Hook-Based Enforcement or Permissions and Allowlists patterns in [`field-guide.md`](field-guide.md) so others can wire up the same guardrail.
 - Do not let discoveries die in a chat DM. If it was worth typing once, it is worth landing somewhere that survives the conversation.

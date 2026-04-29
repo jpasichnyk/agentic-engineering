@@ -41,7 +41,9 @@ Guidance for AI agents working in this project. Read at session start.
 ## Reviews and PRs
 - **Before opening a PR for a meaningful change, get a fresh-context review.** A different model is ideal but not required — the key property is clean context with no stake in prior decisions. Give the reviewer only the spec/plan/readme + the diff; ask "what's missing or wrong?" rather than "does this look good?"
 - **Run the full test suite before opening the PR.** Failing tests don't go in the PR; they go on the to-fix list.
+- **Do a documentation review pass before the PR.** Separate from the code review — different question: *does the doc accurately describe what now exists?* Check READMEs, ADRs, inline comments at non-obvious decision points, and the relevant AGENTS.md. Docs that drift from code are worse than no docs — they actively mislead.
 - **Draft PR descriptions** that cover: goal, summary of changes, non-obvious decisions and why, what was explicitly *not* changed, link to spec/plan, open questions. A reviewer who can read your reasoning in 30 seconds is faster and more useful than one reconstructing it from the diff.
+- **Keep the PR description current as the work evolves.** If review feedback prompts a meaningful change, follow-up commits adjust scope, or you defer something explicitly — update the description. A reviewer's second read shouldn't have to reconstruct what changed since the first.
 
 ## Phase handoffs
 - **When you finish a phase, draft the next agent's prompt — don't carry into the next phase in the same session.** Planning → execution → tests → review → docs → PR are distinct phases; each wants a fresh-context agent loaded only with the artifacts it needs.

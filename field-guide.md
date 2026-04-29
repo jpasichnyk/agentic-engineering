@@ -370,12 +370,16 @@ A PR description should contain six things: the goal, a summary of what changed,
 
 Detailed PR descriptions are leverage for reviewers. A reviewer who can read "we chose approach A over B because of constraint C" in thirty seconds is a faster, more useful reviewer than one who has to reconstruct that reasoning from the diff. They also catch decisions early — a bad call that surfaces in PR review costs far less than one that surfaces in production.
 
+Two practices that often slip: a **documentation review pass** before opening the PR (separate from the code review — different question: "does the doc accurately describe what now exists?"), and **keeping the PR description current as the work evolves**. Review feedback that prompts a meaningful change, follow-up commits that adjust scope, anything you defer explicitly — update the description. A reviewer's second read shouldn't have to reconstruct what changed since the first.
+
 **Common pitfalls**
 
 - Generic descriptions ("updates X to Y") that summarize the diff without explaining the decisions — they add no value and reviewers skip them.
 - Doc updates that lag behind code, accumulating until the documentation actively contradicts the system.
 - The agent inventing decisions the human didn't make — draft descriptions need a human review pass before they go up.
 - Treating the PR description as a formality rather than a tool.
+- Skipping the documentation review pass on the assumption that "I updated docs alongside code" was sufficient. It usually is — but a final pass catches drift before reviewers do.
+- Treating the PR description as static — once written, never revisited as review feedback or follow-up commits evolve the change.
 
 **Cross-references** — [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose) — a PR template hook can require sections before merge; [Cross-Model Code Review](#cross-model-code-review)
 

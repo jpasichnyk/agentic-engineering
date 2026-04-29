@@ -20,7 +20,7 @@ In a team with shared priorities and real deliverables, unplanned AI exploration
 
 The right pattern is *time-boxed* exploration on *big-bet* investigations — things that, if they pay off, could rightfully displace items already on the roadmap. Each gets a defined window: a shallow proof-of-concept inside that window, enough to validate the idea and write it up. Then it becomes a real proposal — scope, ticket, placement against committed work. The goal isn't fitting exploration around the edges of committed work; it's finding the few investigations that *should* end up demanding higher priority because the upside is that real. Everything that doesn't clear that bar gets dropped, even if it looks interesting in the moment. Don't chase every squirrel.
 
-This isn't about discouraging experimentation. It's about being honest that "I just want to try this thing" has a cost, and that cost belongs in the same prioritization conversation as everything else the team has committed to. Treating AI work as strategically funded — not just technically interesting — is what keeps exploration from silently crowding out delivery.
+This isn't about discouraging experimentation. It's about being honest that "I just want to try this thing" has a cost, and that cost belongs in the same prioritization conversation as everything else you've committed to. Treating AI work as strategically funded — not just technically interesting — is what keeps exploration from silently crowding out delivery.
 
 ---
 

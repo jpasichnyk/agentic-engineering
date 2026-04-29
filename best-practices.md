@@ -4,11 +4,11 @@
 
 ## 1. Why this doc exists
 
-We're writing this because a small part of the engineering team is already doing real agentic work — multi-step execution, clean-context separation, tool use — while most of the team is still on chat and IDE autocomplete. That gap is fine for now, but the org is forming new team boundaries, and once silos set in, the early-adopter knowledge stops moving. This doc exists to capture what works before that window closes and to lower the activation energy for engineers who are ready to move beyond autocomplete.
+Most engineers using AI today live in chat windows and IDE autocomplete — useful, but a fraction of what AI agents can actually do. A smaller group has pushed past that into real agentic work: multi-step execution, clean-context separation, orchestrated workflows. None of what's in here is secret knowledge — anyone who spends enough time in the trenches with AI agents will arrive at most of it on their own. Writing it down is a head start, a way to compress the learning curve into something readable in an afternoon.
 
-The team uses multiple vendors and tools by design, and that won't change. Different tasks call for different models, and the right answer at any given time depends on context, not loyalty. This doc is vendor-neutral on purpose: the principles here apply regardless of which assistant or IDE you're in. Alongside the principles, it sets guardrails around autonomy, security, and data hygiene — opinionated enough to be useful, not heavy enough to replace judgment.
+The field is multi-vendor by design. Different tasks call for different models, and the right answer at any given time depends on context, not loyalty. This doc is vendor-neutral on purpose: the principles here apply regardless of which assistant or IDE you're in. Alongside the principles, it sets guardrails around autonomy, security, and data hygiene — opinionated enough to be useful, not heavy enough to replace judgment.
 
-This is a living doc. "Written down" does not mean "frozen." The field changes quickly, and anything here that stops reflecting reality should be updated. If you've found something that works — or something that doesn't — you're invited to propose a change. For patterns, playbooks, and concrete how-to guidance, see [`field-guide.md`](field-guide.md). For a personal progression path from chat user to multi-agent work, see [`onboarding-ladder.md`](onboarding-ladder.md).
+This is a living doc. "Written down" does not mean "frozen." The field changes quickly, and anything here that stops reflecting reality should be updated. If you've found something that works — or something that doesn't — say so. For patterns, playbooks, and concrete how-to guidance, see [`field-guide.md`](field-guide.md). For a personal progression path from chat user to multi-agent work, see [`onboarding-ladder.md`](onboarding-ladder.md).
 
 ## 2. Core Principles
 
@@ -52,9 +52,9 @@ Hooks and permission settings are deterministic. A pre-commit hook that blocks `
 
 ## 3. Contributing and Sharing
 
-The field changes fast enough that anything written here might be wrong by the time someone reads it. Velocity comes from posting what you learned — a prompt that worked unusually well, a setup that failed in an unexpected way, a tool that surprised you, a hook that caught a near-miss — not from discovering it alone and moving on. Solo discovery that stays in a Slack DM or a personal notes file benefits no one. The norm here is simple: if you found something worth knowing, write it up and share it. That is how this doc improves.
+The field changes fast enough that anything written here might be wrong by the time someone reads it. Velocity comes from posting what you learned — a prompt that worked unusually well, a setup that failed in an unexpected way, a tool that surprised you, a hook that caught a near-miss — not from discovering it alone and moving on. Discoveries that die in a chat DM or a personal notes file benefit no one. The norm here is simple: if you found something worth knowing, write it up and share it. That is how this doc improves.
 
-This is currently Jesse's working doc in a private repo. When the team adopts a copy, the lifecycle decisions get made then: tiered review cadence, a shared forum for "what I learned" posts, ownership distribution. V1 does not commit to any specific mechanism. What it does commit to is the norm: contribute what you learn, even if the contribution is rough. The bar for adding a new pattern or playbook is low — write up what happened, what you tried, and what worked. The bar for changing a core principle is higher — a proposed change to §2 should include the reasoning, not just the edit.
+This is opinionated guidance, not policy. The bar for adding a new pattern or playbook is low — write up what happened, what you tried, and what worked. The bar for changing a core principle is higher — a proposed change to §2 should include the reasoning, not just the edit.
 
 **How to contribute:**
 
@@ -62,4 +62,4 @@ This is currently Jesse's working doc in a private repo. When the team adopts a 
 - If something failed — a model got confused, an agent went sideways, a setup cost you time — document what went wrong and what you'd do differently. Failure notes are just as useful as wins.
 - If something here is out of date or wrong, open a PR with the correction and a one-line explanation. For patterns and playbooks, the bar is low; for a core principle in §2, include the reasoning.
 - If you hit a near-miss that a hook or allowlist could have prevented, add it to the Hook-Based Enforcement or Permissions and Allowlists patterns in [`field-guide.md`](field-guide.md) so others can wire up the same guardrail.
-- Do not let discoveries die in a Slack DM. If it was worth typing once, it is worth landing somewhere that survives the conversation.
+- Do not let discoveries die in a chat DM. If it was worth typing once, it is worth landing somewhere that survives the conversation.

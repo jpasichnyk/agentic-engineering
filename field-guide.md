@@ -135,6 +135,31 @@ Project-level config files (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, and equiva
 
 **Cross-references** — [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose); [Hook-Based Enforcement](#hook-based-enforcement)
 
+### Context Compaction and Persistent Memory
+
+**When to use** — Long sessions or repeated workflows where context bloat is a real cost; any project where you spend the first several turns re-explaining the same background. Most relevant once you've adopted [Plan-Then-Execute](#plan-then-execute) and clean-context separation — you know how to start fresh, but you're still paying the re-load tax every time.
+
+**How it works**
+
+Three approaches with different tradeoffs:
+
+- **Compaction** — summarize accumulated context into a denser brief, save it, hand only that to the next session. Many inference platforms offer vendor-native compaction. Trades fidelity for window space; nuance compresses poorly.
+
+- **Persistent memory** — dedicated tools that store context across sessions and surface it on demand. Check data-handling terms before pointing them at sensitive context — some may train on what you store. Most useful for context that genuinely spans projects; less so for task-specific context.
+
+- **Manual artifacts** — markdown files in the repo the agent re-reads at session start. Lowest tech, most reliable, fully transparent; changes are visible in version control. A one-page "current state" file often outperforms automated memory on reliability and costs nothing to set up.
+
+Start with manual artifacts. Add the other layers only after you've identified a specific gap they'd close.
+
+**Common pitfalls**
+
+- Compacted summaries lose nuance that turns out to matter later — over-compaction is hard to detect until the session breaks.
+- Persistent-memory services may train on stored data — verify before pointing them at proprietary context.
+- Using memory tools as a substitute for disciplined curation rather than an augment. Memory should reduce friction, not replace the habit of keeping context intentional.
+- Paying for tooling before validating the actual workflow cost. Try the manual approach first.
+
+**Cross-references** — [Principle 1: Manage context aggressively](best-practices.md#1-manage-context-aggressively); [Plan-Then-Execute](#plan-then-execute) (a clean handoff often beats memory); [Long-Lived Agent Configuration](#long-lived-agent-configuration)
+
 ### Hook-Based Enforcement
 
 **When to use** — Any rule that must hold regardless of what the agent remembers. If you have ever worded a rule more carefully hoping the agent would follow it better, and it didn't, that rule belongs in a hook.
@@ -191,6 +216,33 @@ On `--dangerously-skip-permissions`: this flag exists for a reason. It is useful
 
 **Cross-references** — [Principle 2: Match autonomy to phase and blast radius](best-practices.md#2-match-autonomy-to-phase--blast-radius); [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose); [Hook-Based Enforcement](#hook-based-enforcement)
 
+### Runtime and Environment Isolation
+
+**When to use** — When the blast radius of an agent going off-script would be unacceptable: production work, customer data access, infrastructure mutations, anything destructive within reach. Pair with [Permissions and Allowlists](#permissions-and-allowlists) for defense in depth — permissions govern what the agent can invoke; environment isolation governs what the agent can reach.
+
+- *When it's overkill:* Low-stakes drafting in a worktree, local development with throwaway data, short experiments where you're attentive and the blast radius is contained. The setup cost is real; match isolation to actual stakes.
+
+**How it works**
+
+Pick the lowest level that's sufficient, then layer up as stakes warrant:
+
+- **Scoped user account** — run the agent as a dedicated unprivileged user. OS-level permissions become a real boundary at no additional tooling cost.
+- **Filesystem reach limits** — restrict the agent's working directory to a specific tree. The agent cannot read or write outside the designated scope.
+- **Network access policies** — no egress by default; allow only known-needed destinations. Production networks are off-limits from agent contexts.
+- **Container or VM isolation** — full process isolation. An agent that corrupts its sandbox cannot affect the host.
+- **Scoped credentials** — narrowest permissions the task requires; rotate after use. Don't expose secrets the agent doesn't need.
+
+The two layers compose: Permissions (inside-the-box) block bad commands. Environment (outside-the-box) blocks the agent from reaching something bad through other means. Neither is sufficient alone for high-stakes work.
+
+**Common pitfalls**
+
+- Running as root "for convenience" — the convenience savings are small; the blast radius when something goes wrong is large.
+- Credentials in the agent's environment scope it doesn't need — inherited `.env` files, test passwords that double as production passwords.
+- Forgetting to revoke broad credentials issued for a one-off test. Temporary access that never gets revoked is permanent access.
+- Over-isolating low-stakes work until the friction makes the agent impractical.
+
+**Cross-references** — [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose) (the outside-the-box layer); [Principle 2: Match autonomy to phase and blast radius](best-practices.md#2-match-autonomy-to-phase--blast-radius) (environment is one of the blast-radius levers); [Permissions and Allowlists](#permissions-and-allowlists) (the inside-the-box layer)
+
 ### Parallel Agents Without Collisions
 
 **When to use** — Whenever you want two or more agents working on related work simultaneously and need a structural guarantee they won't fight over the same files. If the work is tightly coupled — agents writing to the same module, coordinating on the same API surface — sequence it instead. Parallelism only pays when the task partitions cleanly.
@@ -234,6 +286,31 @@ One agent per branch. Agents never write to each other's branches mid-flight. Me
 - **Override file diverging from what infrastructure provides** — infrastructure assigns port 8081 but the override still says 8080. Keep them in sync; a mismatch is a configuration bug.
 
 **Cross-references** — [Principle 1: Manage context aggressively](best-practices.md#1-manage-context-aggressively); [Parallel Agents Without Collisions](#parallel-agents-without-collisions); [Long-Lived Agent Configuration](#long-lived-agent-configuration)
+
+### Agent-Readable Service Documentation
+
+**When to use** — Any codebase with multiple packages, services, or subsystems where agents do meaningful work. The cleaner you want the boundary between "the agent can refactor freely here" and "this needs careful review," the more this pattern earns its keep. Without it, agents navigate by inference — guessing what code is for, missing non-obvious constraints.
+
+**How it works**
+
+Four practices, all aimed at making the codebase legible to a fresh agent with no prior context:
+
+- **Per-package handoff doc** — each package or service has a README (or `AGENTS.md`) covering the problem set, what it does, why it exists, its public contracts, and where to find tests. Clarity beats completeness. If a new agent can read it and know where to start and what to avoid, it's doing its job.
+
+- **Specs alongside code** — design specs live in the repo next to the code they describe, not in a wiki the agent cannot reach. Wikis are fine for human discovery; if you want agents to honor a spec, the spec must be in the file tree the agent reads. Code alone doesn't record the alternatives that were rejected.
+
+- **Root-level service map** — a top-level `AGENTS.md` or README lists every package with a one-line summary and a link to its per-package doc. The agent finds the right place without trial and error.
+
+- **What-and-why comments at non-obvious decision points** — not "what does this do" (code shows that) but "why this way" (code cannot show that).
+
+**Common pitfalls**
+
+- Docs that drift from code — pair per-package docs with contract tests so drift surfaces before an agent acts on stale guidance.
+- Writing for humans only — if decoding requires tribal knowledge, a fresh agent can't use it.
+- Over-documenting until no one reads the files. Concise and current beats comprehensive and stale.
+- Putting key context in a wiki outside the agent's read scope. If it can't be reached from the repo, it doesn't exist for the agent.
+
+**Cross-references** — [Principle 4: Service boundaries enable agentic looseness](best-practices.md#4-service-boundaries-enable-agentic-looseness); [Long-Lived Agent Configuration](#long-lived-agent-configuration); [Doc and PR Discipline](#doc-and-pr-discipline)
 
 ### Parallel Workstream State Sharing
 
@@ -301,6 +378,33 @@ Detailed PR descriptions are leverage for reviewers. A reviewer who can read "we
 - Treating the PR description as a formality rather than a tool.
 
 **Cross-references** — [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose) — a PR template hook can require sections before merge; [Cross-Model Code Review](#cross-model-code-review)
+
+### Closing the Agent Failure Loop
+
+**When to use** — Any time an agent misses a spec, repeats a mistake, or gets blocked on something good docs should have handled. Treat the failure as a gap in an artifact — the docs, AGENTS.md, the spec — not a one-off prompt problem. The session-level fix is easy; the artifact-level fix is what compounds.
+
+- *When it's overkill:* One-off slip-ups unlikely to recur; failures that are clearly prompt-specific with no broader lesson; trivial mistakes that don't suggest anything structural. Not every failure warrants a docs update — but any failure you've seen twice does.
+
+**How it works**
+
+1. **Notice the failure.** The agent misses a spec, asks for context that should have been available, or repeats a prior mistake. Resist fixing it in place.
+
+2. **Diagnose the gap.** Was the doc missing? Was AGENTS.md outdated? Was the spec absent? The root cause is almost always in an artifact. Fix the artifact, not the prompt.
+
+3. **Improve the right artifact.** Update the package docs, AGENTS.md, the shared prompt template, or the in-code comment — wherever the gap was.
+
+4. **Verify with a fresh agent.** Start a clean-context session and run the same task. If the new agent succeeds without re-explanation, the gap closed. If it still fails, diagnose again.
+
+5. **Pay attention to clusters.** Repeated failures in the same package signal a deeper rethink. Recurring mistakes of the same class may mean the rule belongs in a hook, not prose.
+
+**Common pitfalls**
+
+- Fixing the prompt and moving on — the next session repeats the failure because the underlying artifact didn't change.
+- Updating docs but skipping verification — you don't know the fix works until a clean-context agent demonstrates it.
+- Documenting failures without documenting what fixed them. Half-closed loops accumulate.
+- Ignoring failure patterns — which artifacts you're updating most is data about where investment is needed.
+
+**Cross-references** — [Principle 3: Verify with fresh eyes](best-practices.md#3-verify-with-fresh-eyes) (the fresh-agent verification step); [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose) (some gaps belong in hooks, not prose); [Doc and PR Discipline](#doc-and-pr-discipline)
 
 ### Job Run State and Audit Trail
 

@@ -12,5 +12,3 @@ A living set of working notes on how to use AI agents effectively in engineering
 ## Starters
 
 - **[starters/AGENTS.md](starters/AGENTS.md)** — Drop-in agent guidance file. Customize for your project.
-
-Design notes: [`specs/2026-04-28-design.md`](specs/2026-04-28-design.md).

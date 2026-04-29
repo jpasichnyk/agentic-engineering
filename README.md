@@ -10,9 +10,9 @@ For the fuller framing of why these docs exist and what they're for, see [`best-
 
 ## What's here
 
-- **[best-practices.md](best-practices.md)** — Six core principles. The spine. Read first.
+- **[working-with-ai.md](working-with-ai.md)** — Higher-level judgment about when and how to use AI in engineering work. **Start here.**
+- **[best-practices.md](best-practices.md)** — Six core principles. The operational spine.
 - **[field-guide.md](field-guide.md)** — Patterns, playbooks, and security guidance. A reference, looked up by topic.
-- **[working-with-ai.md](working-with-ai.md)** — Higher-level judgment about when and how to use AI in engineering work.
 - **[onboarding-ladder.md](onboarding-ladder.md)** — Personal progression L1→L4 (stub; full design pending).
 
 ## Starters

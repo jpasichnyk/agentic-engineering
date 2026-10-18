@@ -76,7 +76,7 @@ The architectural cost an agent pays isn't counted in layers, files, or framewor
 
 The payoff is economic as well as consistent. The fewer decisions a task leaves open, the smaller, cheaper, and faster the model that can do it reliably. When the code keeps agents on track, you don't need a slower, more expensive top-tier model for every task: a top-tier agent plans, coordinates, and checks the work, while mid-tier or fast models implement and test. See [Choosing Model, Vendor, Effort](field-guide.md#choosing-model-vendor-effort).
 
-The codebase is the agent's teaching material. Consistent features compound into a growing set of examples to follow; inconsistency and bad patterns propagate the same way, so reference implementations have to be deliberately designed, reviewed, and maintained. This matters most for products that grow across many sessions and parallel agents.
+The codebase is the agent's teaching material. An agent adding a feature should be able to read what's there and conclude, without asking: this needs a new consumer, a thin endpoint that calls it, and the same request/response and error-handling shape every other operation uses. What *not* to do should be just as legible. Consistent features compound into a growing set of examples to follow; inconsistency and bad patterns propagate the same way, so reference implementations have to be deliberately designed, reviewed, and maintained. This matters most for products that grow across many sessions and parallel agents.
 
 Conventions that can be checked mechanically belong in compile-time boundaries, architecture tests, and CI, not only in AGENTS.md (Principle 6).
 

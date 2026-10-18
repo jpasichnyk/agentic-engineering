@@ -13,7 +13,7 @@ For the fuller framing of why these docs exist and what they're for, see [`best-
 ## What's here
 
 - **[working-with-ai.md](working-with-ai.md)** — Higher-level judgment about when and how to use AI in engineering work. **Start here.**
-- **[best-practices.md](best-practices.md)** — Six core principles. The operational spine.
+- **[best-practices.md](best-practices.md)** — Seven core principles. The operational spine.
 - **[field-guide.md](field-guide.md)** — Patterns, playbooks, and security guidance. A reference, looked up by topic.
 - **[onboarding-ladder.md](onboarding-ladder.md)** — Personal progression L1→L4 (stub; full design pending).
 

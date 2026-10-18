@@ -4,9 +4,9 @@
 
 ## Why this doc exists
 
-The other docs in this repo are operational. `best-practices.md` gives you six principles for doing agentic work well. `field-guide.md` gives you patterns and playbooks you look up when you're mid-task. This doc sits above both of them — it's about the calls you make before you open an agent at all.
+The other docs in this repo are operational. `best-practices.md` gives you seven principles for doing agentic work well. `field-guide.md` gives you patterns and playbooks you look up when you're mid-task. This doc sits above both of them — it's about the calls you make before you open an agent at all.
 
-Those are different decisions, and they belong in a different doc. Should this work be an AI project at all right now? How many parallel streams should I actually be running? How big should the task I hand off be? Where does automation replace agents? These are judgment calls — they don't have checklists. They need a slightly different mode of thinking: more deliberate, more aware of org context, more willing to say "not yet" or "not this."
+Those are different decisions, and they belong in a different doc. Should this work be an AI project at all right now? How many parallel streams should I actually be running? How big should the task I hand off be? How much architecture does this product need? Where does automation replace agents? These are judgment calls — they don't have checklists. They need a slightly different mode of thinking: more deliberate, more aware of org context, more willing to say "not yet" or "not this."
 
 This doc is for engineers who are already doing agentic work and starting to develop opinions about it — and for anyone who leads or influences how engineering time gets allocated. The operational docs tell you how to run a clean session. This one is about whether to run it.
 
@@ -47,6 +47,27 @@ The right size is roughly "one clear deliverable an agent can produce in a focus
 Neither failure mode announces itself loudly. You notice them in retrospect: the session that felt like constant interruption, or the one that produced something you had to redo because it drifted gradually off course. Calibration happens through doing the work — noticing where friction lands and adjusting. This is judgment, not formula.
 
 The fix when something is too big is the same shape as Principle 1: have an agent write the plan down — incrementally if the work supports it — then hand each chunk to a fresh session. Manage the handoff manually or via an orchestrator dispatching subagents; what matters is that the executor doesn't carry the planning session's accumulated context. Each chunk gets a clean window and the relevant slice of the plan, nothing more. The rules the agent operates under are honored because they were just loaded, not buried under thirty thousand tokens of prior turns. For the operational pattern, see [Plan-Then-Execute](field-guide.md#plan-then-execute).
+
+---
+
+## Right-size the architecture
+
+How much structure a product gets is a call you make before you open an agent, and it's easy to get wrong in both directions. The instinct most engineers bring is to keep things simple: fewer layers, fewer files, fewer frameworks. That instinct is right for a lot of work, but it measures the wrong thing once agents write most of the code. What an agent pays for isn't layers. It's decisions left open. Every feature where the agent has to work out where code goes, how modules talk, and how errors and tests are handled is a feature where it can choose differently from the last agent. The cost of architecture is paid once, up front. The cost of ambiguity is paid on every feature, by every agent, in every session.
+
+Ambiguity shows up in the model bill too: the fewer decisions a task leaves open, the cheaper and faster the model that can do it reliably, which is what lets a top-tier agent plan and check while mid-tier or fast models do the implementation and testing (see [Choosing Model, Vendor, Effort](field-guide.md#choosing-model-vendor-effort)).
+
+That doesn't make heavy architecture the safe default. A script, a prototype, a two-week experiment will never amortize a module system, a contract generator, and a suite of architecture tests. The question is how long the thing will live and how many hands will be in it. A few signals:
+
+- **Expected lifetime.** A tool you'll throw away next quarter needs a folder convention at most. A product you'll maintain for years needs answers that hold for years.
+- **Number of features and domains.** One domain with a dozen screens can live with "match what's there." Several domains heading toward hundreds of features need explicit ownership and a standard recipe, because "what's there" will already disagree with itself.
+- **Number of parallel agents and sessions.** One agent in one session can carry a mental model. Ten fresh-context agents a week each rebuild it from the code they read, and every gap is a place they diverge.
+- **Team size.** More people means more reviewers who need the same conventions to judge against.
+
+When the signals point toward structure, start with the conventions you'll need for the next many features, not a speculative future. For a product that will grow, a modular monolith is usually the right first step, because it gives agents clear module boundaries without putting a network between them; a small CRUD app or single-domain tool doesn't need it. Add distributed infrastructure when its operational benefit is concrete — a module that genuinely needs to scale or deploy on its own, not one that might someday. The backend example stack in [Opinionated Architecture](field-guide.md#opinionated-architecture) is built on that gradient: boundaries first, distribution later if ever.
+
+Then revisit. The right amount of architecture at ten features isn't the right amount at two hundred. You're under-structured when agents give three different answers to the same structural question and review keeps catching it. You're over-structured when agents write boilerplate that adds files without removing a decision, or follow conventions nobody can explain. Both show up in review and in the [failure loop](field-guide.md#closing-the-agent-failure-loop) if you're watching for them.
+
+This is the judgment side of [Principle 7](best-practices.md#7-reduce-architectural-ambiguity-not-just-complexity). For the operational pattern, see [Opinionated Architecture](field-guide.md#opinionated-architecture).
 
 ---
 

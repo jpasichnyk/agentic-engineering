@@ -31,6 +31,7 @@ The two axes multiply, and that multiplication is the insight worth internalizin
 - Execution from a finalized plan: autonomous, fresh session
 - Production mutations (deploys, deletes, schema changes): named human approval, every time
 - Read-only access (logs, queries, config inspection): open by default; friction here is a tax
+- Architectural decisions (new frameworks, new module boundaries, new cross-module communication paths): approval before execution. Git can revert them, but later agents copy them, so their blast radius is long — see the decision-authority step in [Opinionated Architecture](field-guide.md#opinionated-architecture)
 - Encode these via permissions and hooks; written instructions drift as context fills
 
 See [Permissions and Allowlists](field-guide.md#permissions-and-allowlists) and [Hook-Based Enforcement](field-guide.md#hook-based-enforcement).
@@ -43,9 +44,9 @@ A fresh-context reviewer — same model or different — sees only what a human 
 
 ### 4. Service boundaries enable agentic looseness
 
-The cleaner your service boundaries are, the more aggressive AI work can be. Strong contracts, published interfaces, integration tests, and production smoke or regression tests turn "did the agent write the right code?" into "does the service still honor its contract?" — a mechanical question with a mechanical answer. Inside a well-bounded service, internal style and detailed design choices matter less; the agent has room to refactor, rewrite, or add features without line-by-line human review via [Run-and-Iterate Loop](field-guide.md#run-and-iterate-loop) and [Pin-Then-Modify](field-guide.md#pin-then-modify).
+The cleaner your service boundaries are, the more aggressive AI work can be. Strong contracts, published interfaces, integration tests, and production smoke or regression tests turn "did the agent write the right code?" into "does the service still honor its contract?" — a mechanical question with a mechanical answer. Inside a well-bounded service you can verify by contract rather than line by line, so the agent has room to refactor, rewrite, or add features via [Run-and-Iterate Loop](field-guide.md#run-and-iterate-loop) and [Pin-Then-Modify](field-guide.md#pin-then-modify). That latitude is about *how well* to implement within the service's conventions, not *which* pattern to invent — see [Principle 7](#7-reduce-architectural-ambiguity-not-just-complexity).
 
-The reverse is also true: tightly coupled, undocumented code is an AI tax. Every agent change risks cross-cutting effects no test catches, and human review becomes a bottleneck that scales with agentic output. This isn't a mandate to redo your architecture — it's a gradient. The cleaner your boundaries today, the more AI can multiply your effort tomorrow; the more tangled, the more carefully every AI change has to be inspected. For the concrete recipe of what "agent-friendly boundaries" looks like in practice, see [Agent-Readable Service Documentation](field-guide.md#agent-readable-service-documentation).
+The reverse is also true: tightly coupled, undocumented code is an AI tax. Every agent change risks cross-cutting effects no test catches, and human review becomes a bottleneck that scales with agentic output. This isn't a mandate to redo your architecture — it's a gradient. The cleaner your boundaries today, the more AI can multiply your effort tomorrow; the more tangled, the more carefully every AI change has to be inspected. Boundaries make verification cheap; conventions inside them make the output consistent. Both are gradients worth investing in as the codebase grows. For the concrete recipe of what "agent-friendly boundaries" looks like in practice, see [Agent-Readable Service Documentation](field-guide.md#agent-readable-service-documentation).
 
 ### 5. Tests are leverage
 
@@ -68,6 +69,25 @@ When a rule has to hold, encode it structurally rather than asking the agent to 
 **What the agent can reach** — restricted user accounts, filesystem boundaries, network access policies (no egress, or allowlisted destinations only), container or VM isolation, no secrets in environment scope. Higher setup cost; pays off when the blast radius is large or the stakes are high. See [Runtime and Environment Isolation](field-guide.md#runtime-and-environment-isolation).
 
 The two layers compose. Layer 1 protects against the agent invoking a bad command. Layer 2 protects against the agent finding a way to do something bad regardless. For low-stakes work in a worktree, Layer 1 is usually enough. For production work, customer data, or infra mutations, both layers earn their cost.
+
+### 7. Reduce architectural ambiguity, not just complexity
+
+The architectural cost an agent pays isn't counted in layers, files, or frameworks. It's counted in open decisions. Every feature that makes the agent choose where code goes, how modules talk, or how errors, validation, auth, and tests work is a chance to drift, because each fresh-context agent re-derives the architecture from the code it reads (Principles 1 and 3). An architecture that answers those questions up front gives a repeatable path, so the agent spends its effort on the business problem. Convention over configuration is the right instinct: a convention is a decision nobody has to make again.
+
+The payoff is economic as well as consistent. The fewer decisions a task leaves open, the smaller, cheaper, and faster the model that can do it reliably. When the code keeps agents on track, a top-tier agent can plan, coordinate, and check the work while mid-tier or fast models implement and test, instead of paying for a slower, more expensive model on every task. The saving holds only where the conventions are real and enforced. See [Choosing Model, Vendor, Effort](field-guide.md#choosing-model-vendor-effort).
+
+The codebase is the agent's teaching material. An agent adding a feature should be able to read what's there and conclude, without asking: this needs a new consumer, a thin endpoint that calls it, and the same request/response and error-handling shape every other operation uses. What *not* to do should be just as legible. Consistent features compound into a growing set of examples to follow; inconsistency and bad patterns propagate the same way, so reference implementations have to be deliberately designed, reviewed, and maintained. This matters most for products that grow across many sessions and parallel agents.
+
+Proportionality matters as much as consistency: the goal is the minimum architecture that establishes repeatable, enforceable conventions for the product's expected lifetime and growth. Structure that removes a decision the agent would otherwise make is productive complexity; structure that adds indirection without removing one is accidental. [Opinionated Architecture](field-guide.md#opinionated-architecture) has both lists and two example stacks.
+
+**In practice:**
+- Answer the recurring "where does this go, how is it done here" questions once, where the agent reads them
+- Keep a few reference features that show each convention; mark areas that don't follow them "do not imitate"
+- Routine decisions are autonomous; architectural ones get approval (Principle 2)
+- Once a convention is stable, enforce its mechanical parts in CI (Principle 6); keep judgment calls in review
+- Scale the architecture to the product, not the other way round
+
+See [Executable Architecture Rules](field-guide.md#executable-architecture-rules) and [Right-size the architecture](working-with-ai.md#right-size-the-architecture).
 
 ## 3. Contributing and Sharing
 

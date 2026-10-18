@@ -4,7 +4,7 @@
 
 ## 1. How to use this doc
 
-This is a reference doc, not something to read top-to-bottom. When you're mid-task and need a concrete how-to — how to plan and execute cleanly, how to write tests around legacy code, how to set up a hook that blocks something dangerous — look up the relevant pattern. Each pattern is structured the same way: when to use it, how it works, common pitfalls, and cross-references to related patterns and to the principles in [`best-practices.md`](best-practices.md). Playbooks (§3) string multiple patterns together for end-to-end scenarios. Security guidance (§4) covers what we've committed to and what we're still figuring out. If you've found a pattern, tweak, or near-miss worth sharing, contribute it.
+This is a reference doc, not something to read top-to-bottom. When you're mid-task and need a concrete how-to — how to plan and execute cleanly, how to write tests around legacy code, how to set up a hook that blocks something dangerous — look up the relevant pattern. Each pattern is structured the same way: when to use it, how it works, common pitfalls, and cross-references to related patterns and to the principles in [`best-practices.md`](best-practices.md). Playbooks (§3) string multiple patterns together for end-to-end scenarios. Security guidance (§4) covers what we've committed to and what we're still figuring out. Where a pattern needs a stack-specific illustration, it carries one inline, such as the example stacks in [Opinionated Architecture](#opinionated-architecture). If you've found a pattern, tweak, or near-miss worth sharing, contribute it.
 
 ## 2. Patterns
 
@@ -184,7 +184,7 @@ Claude Code has a first-class hooks system with pre-tool-use, post-tool-use, and
 - Silent failures — a hook that blocks an action without emitting visible output leaves the agent (and you) with no signal. Always emit a clear message stating what was blocked and why.
 - Performance drag — hooks that run a slow process on every file edit will make every session painful. Scope triggers narrowly (e.g., only on `*.ts` edits) and keep hook scripts fast.
 
-**Cross-references** — [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose); [Permissions and Allowlists](#permissions-and-allowlists)
+**Cross-references** — [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose); [Permissions and Allowlists](#permissions-and-allowlists); [Executable Architecture Rules](#executable-architecture-rules)
 
 ### Permissions and Allowlists
 
@@ -299,7 +299,7 @@ Four practices, all aimed at making the codebase legible to a fresh agent with n
 
 - **Specs alongside code** — design specs live in the repo next to the code they describe, not in a wiki the agent cannot reach. Wikis are fine for human discovery; if you want agents to honor a spec, the spec must be in the file tree the agent reads. Code alone doesn't record the alternatives that were rejected.
 
-- **Root-level service map** — a top-level `AGENTS.md` or README lists every package with a one-line summary and a link to its per-package doc. The agent finds the right place without trial and error.
+- **Root-level service map** — a top-level `AGENTS.md` or README lists every package with a one-line summary and a link to its per-package doc. The agent finds the right place without trial and error. The map is also where module ownership is declared.
 
 - **What-and-why comments at non-obvious decision points** — not "what does this do" (code shows that) but "why this way" (code cannot show that).
 
@@ -310,7 +310,71 @@ Four practices, all aimed at making the codebase legible to a fresh agent with n
 - Over-documenting until no one reads the files. Concise and current beats comprehensive and stale.
 - Putting key context in a wiki outside the agent's read scope. If it can't be reached from the repo, it doesn't exist for the agent.
 
-**Cross-references** — [Principle 4: Service boundaries enable agentic looseness](best-practices.md#4-service-boundaries-enable-agentic-looseness); [Long-Lived Agent Configuration](#long-lived-agent-configuration); [Doc and PR Discipline](#doc-and-pr-discipline)
+**Cross-references** — [Principle 4: Service boundaries enable agentic looseness](best-practices.md#4-service-boundaries-enable-agentic-looseness); [Long-Lived Agent Configuration](#long-lived-agent-configuration); [Doc and PR Discipline](#doc-and-pr-discipline); [Opinionated Architecture](#opinionated-architecture)
+
+### Opinionated Architecture
+
+**When to use** — A product expected to grow across many sessions, features, domains, or parallel agents. Every structural decision left open is one each fresh-context agent makes again, a little differently. Small apps get a light version: a folder convention, a feature recipe, one reference feature.
+
+- *When it's overkill:* Scripts, prototypes, throwaway or time-boxed experiments, short-lived tools.
+
+**How it works**
+1. **List the questions every feature forces** — where it belongs and which module owns it, the request/response shape, how components communicate, where logic, contracts, and persistence live, which UI components and tokens to use, how errors, validation, auth, logging, and tests work, what the agent may decide alone. Answer each once, in an "Architecture" section of the project's AGENTS.md that links deeper docs.
+2. **Let the tools carry the answers.** Pick opinionated frameworks, one per job, so the convention comes with the tool instead of from prose.
+3. **Write the standard feature recipe** as numbered steps. Vertical slice architecture is a good fit, because each slice is a recipe the agent can repeat without touching its neighbors.
+4. **Declare decision authority in three tiers.** *Routine* — autonomous (a new operation in an existing module, a component from the design system). *Local design* — autonomous, justified in the PR (a new internal service, a reusable composable). *Architectural* — human approval first (a new major framework, new or redrawn module boundaries, bypassing contracts, new cross-module communication, a new persistence technology, a separately deployed service, replacing the design system). Projects move items between tiers: a mature team may make new composables routine; a regulated codebase may make any new dependency architectural.
+5. **Keep three to five reference implementations** — real, production-quality features, each showing a convention end to end: a backend vertical slice, a cross-module request/response, an event-driven workflow, a frontend feature with API, state, forms, and tests, a standard error path. Review them like production code, annotate the *why*, and list them in AGENTS.md ("before adding a consumer, read X"). Mark inconsistent areas "do not imitate": every merged feature is a de facto reference, intended or not.
+6. **Make the mechanical parts executable** ([Executable Architecture Rules](#executable-architecture-rules)), reference implementations included, so they can't drift.
+7. **Provide a path to change the convention.** ADRs earn their keep here, because the recorded *why* is what lets a later agent change a convention on purpose. The decision updates the reference implementation first, then the rule, then the recipe.
+
+The test for every piece of structure: does it remove a decision the agent would otherwise make?
+- *Productive complexity:* clear ownership boundaries, consistent entry points, reusable framework conventions, strong types, standard infrastructure, automated enforcement, testable modules, deliberate deployment flexibility.
+- *Accidental complexity:* redundant abstractions, unnecessary service layers, excessive interfaces, framework duplication, premature distribution, generic repositories that hide the store's useful capabilities, messages for trivial internal operations, indirection without meaningful separation.
+
+**Example stacks**
+
+Illustrative, not required. Enforcement for both is in [Executable Architecture Rules](#executable-architecture-rules).
+
+- *Backend — message-driven modular monolith (.NET).* A modular monolith is a good default for an agent-built backend, because it gives every module a hard boundary without a network between them. FastEndpoints on ASP.NET Core for thin HTTP adapters; MassTransit for operations as message contracts plus consumers; MongoDB; vertical slices inside business modules. Every feature follows one recipe: owning module, contract, consumer, tests, thin endpoint. Endpoints and other modules see only a module's contracts, never its internals or database. Start on MassTransit's in-memory transport and move a module onto RabbitMQ only when it must run separately, so the boundaries exist before distribution does. Message only public operations and cross-module calls, and treat chained request/response as a smell even in-process. Extraction still isn't automatic: serialization and versioning, latency and partial failure, idempotency, data ownership, and the in-memory transport's lack of durability all need work. Costs: boilerplate per operation, tracing across consumers, eventual consistency between modules. MassTransit's license terms have changed across major versions; check current terms before adopting. Small CRUD apps are better served by plain vertical slices calling services directly.
+- *Frontend — opinionated Vue.* Treating one design system as an architectural constraint is a good idea, because otherwise every screen an agent builds invents its own visual language. Vue 3 with strict TypeScript and Vite; one component library (Ionic Vue for native-style mobile, PrimeVue for data-heavy apps, Vuetify or Quasar for their conventions, an internal library if you'll maintain it); TanStack Query for server state; Pinia only for shared client state, never a copy of server state; clients generated from the backend's OpenAPI schema; VeeValidate with Zod for forms; Vitest and Playwright for tests; Capacitor for native mobile. The agent never decides how to fetch, cache, retry, show loading and error states, validate a form, or call the API. Feature folders (`app/`, `features/<name>/`, `shared/`, `generated/`) with import rules say where code goes. Costs: setup, generated-client churn, design-system lock-in. Pick one data-fetching convention, generated query hooks *or* hand-written composables, because agents will happily use both. Overkill for a marketing page, a prototype, or a single-screen tool.
+
+**Common pitfalls**
+- Adding structure that doesn't remove a decision.
+- Conventions so rigid that useful refactors can't happen. Step 7 is the release valve; if it's never used, the conventions are frozen, not settled.
+- Agents copying a pattern without its purpose, such as sending a message where a method call was right. Record the *why* next to the convention.
+- Reference implementations that rot, or toy references simpler than real features. Agents learn the shortcut, not the convention.
+- Conventions written down but never enforced.
+- Adopting a framework without checking lock-in and licensing, or adding a second one for the same job — agents will use both.
+
+**Cross-references** — [Principle 7: Reduce architectural ambiguity, not just complexity](best-practices.md#7-reduce-architectural-ambiguity-not-just-complexity); [Principle 4: Service boundaries enable agentic looseness](best-practices.md#4-service-boundaries-enable-agentic-looseness); [Principle 2: Match autonomy to phase × blast radius](best-practices.md#2-match-autonomy-to-phase--blast-radius); [Executable Architecture Rules](#executable-architecture-rules); [Agent-Readable Service Documentation](#agent-readable-service-documentation); [Closing the Agent Failure Loop](#closing-the-agent-failure-loop); [Cross-Model Code Review](#cross-model-code-review); [Right-size the architecture](working-with-ai.md#right-size-the-architecture)
+
+### Executable Architecture Rules
+
+**When to use** — A convention is stable and a violation can be detected reliably, especially once it has been violated more than once (see [Closing the Agent Failure Loop](#closing-the-agent-failure-loop)). Documentation tells the agent what the architecture is; an executable rule is what still holds late in a long session.
+
+**How it works**
+
+Architecture fitness functions are the right frame here, because they turn "does this follow the architecture?" into the kind of pass/fail signal an agent already acts on in a [Run-and-Iterate Loop](#run-and-iterate-loop). Layer them from cheapest to most expensive and run them in CI, so a violation fails the build:
+
+- **Structural** — project or package reference boundaries, so the forbidden dependency doesn't compile; strict type checking.
+- **Static rules** — architecture tests (NetArchTest or ArchUnitNET in .NET); import-boundary lint in TypeScript (ESLint boundary or restricted-import rules), including bans on competing UI libraries.
+- **Contract** — clients generated from the API schema, schema diff checks for breaking changes, message serialization and compatibility tests. Schema-first contracts are worth the tooling, because an agent can't drift from a type it didn't write.
+- **Behavioral** — consumer and handler tests, integration tests on the real transport or store, end-to-end tests with automated accessibility checks (Playwright with axe, for example).
+
+Split rules by what can actually be checked. *Mechanically enforceable:* dependency direction, "HTTP adapters don't touch persistence," generated code never hand-edited, one component library. *Needs judgment:* whether a module boundary is in the right place, whether an abstraction pays for itself, whether a test means anything. Those belong in review — the same line [Hook-Based Enforcement](#hook-based-enforcement) draws against hooks for judgment calls.
+
+Every failing rule says what was violated, why the rule exists, and what to do instead. "Forbidden dependency" gets routed around; "the HTTP layer must not import Reporting internals — call its public contract" gets fixed. Prove each rule fails: introduce a deliberate violation once and watch the build go red. A rule never seen to fail isn't known to work.
+
+Hooks guard what the agent *does* during a session; architecture rules guard what the *code* is allowed to become, for every contributor, human or agent.
+
+**Common pitfalls**
+- Brittle checks that reward superficial compliance. "Every module has a `Services/` folder" passes while the logic sits in the wrong place.
+- Rules that pin implementation details and block legitimate refactors. Pin dependency direction and contracts, not file layout.
+- Suppression comments that become the norm.
+- Failure messages with no explanation.
+- Enforcing a convention before it's stable.
+
+**Cross-references** — [Principle 6: Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose); [Principle 7: Reduce architectural ambiguity, not just complexity](best-practices.md#7-reduce-architectural-ambiguity-not-just-complexity); [Principle 5: Tests are leverage](best-practices.md#5-tests-are-leverage); [Opinionated Architecture](#opinionated-architecture); [Hook-Based Enforcement](#hook-based-enforcement); [Closing the Agent Failure Loop](#closing-the-agent-failure-loop); [Run-and-Iterate Loop](#run-and-iterate-loop)
 
 ### Parallel Workstream State Sharing
 
@@ -399,7 +463,7 @@ Two practices that often slip: a **documentation review pass** before opening th
 
 4. **Verify with a fresh agent.** Start a clean-context session and run the same task. If the new agent succeeds without re-explanation, the gap closed. If it still fails, diagnose again.
 
-5. **Pay attention to clusters.** Repeated failures in the same package signal a deeper rethink. Recurring mistakes of the same class may mean the rule belongs in a hook, not prose.
+5. **Pay attention to clusters.** Repeated failures in the same package signal a deeper rethink. Recurring mistakes of the same class may mean the rule belongs in a hook or an [architecture rule](#executable-architecture-rules), not prose.
 
 **Common pitfalls**
 
@@ -444,7 +508,7 @@ Use this playbook when building something new end-to-end: a feature that adds fi
 Open a planning session and state the goal and known constraints. Expect back-and-forth: the first statement of requirements is rarely the right one. Narrow scope explicitly — list what is *not* in scope as clearly as what is. The goal here is stable requirements, not a plan; don't rush to architecture until the feature boundary stops moving.
 
 **Phase 2 — Plan capture** *(planning agent produces written artifact)*
-Once requirements are stable, direct the planning agent to write a spec: goals, non-goals, architecture, affected files, and acceptance criteria. Read it and push back on anything vague or missing. The spec is the contract between planning and execution; gaps here become bugs later. Do not end this phase until you can approve the spec in writing.
+Once requirements are stable, direct the planning agent to write a spec: goals, non-goals, architecture, affected files, and acceptance criteria. The spec names the owning module and the nearest reference implementation, says whether the feature follows the standard feature recipe, and flags any decision in the *architectural* tier for approval before execution (see [Opinionated Architecture](#opinionated-architecture)). Read it and push back on anything vague or missing. The spec is the contract between planning and execution; gaps here become bugs later. Do not end this phase until you can approve the spec in writing.
 
 **Phase 3 — Plan handoff** *([Plan-Then-Execute](#plan-then-execute))*
 Close the planning session. Open a fresh execution session and hand it only the finalized spec — not the planning conversation, not "for context" summaries. The separation is the point: the executor must work from the spec, not from the accumulated framing the planner developed. A subagent fork works; so does a manual copy-paste.
@@ -456,7 +520,7 @@ Inside the execution session, or as a sub-session with clean context, draft test
 The implementation agent receives the spec and the failing tests. It implements, runs the test suite, reads failures, and adjusts — real failure output is more informative than any mock. Set a time-box or iteration cap before the loop starts. If the same test fails three attempts in a row without progress, surface the blocker for human review rather than continuing the loop.
 
 **Phase 6 — Cross-model review** *([Cross-Model Code Review](#cross-model-code-review))*
-Before the PR, run the spec and the diff past a fresh-context agent — a different model is ideal. Give it only the spec, the readme, and the diff; ask what's missing or wrong, not whether it looks good. Pay attention to disagreements: they flag decisions that need a human look. Agreement is a signal, not a guarantee.
+Before the PR, run the spec and the diff past a fresh-context agent — a different model is ideal. Give it only the spec, the readme, the project's architecture conventions, and the diff; ask what's missing or wrong, not whether it looks good. Pay attention to disagreements: they flag decisions that need a human look. Agreement is a signal, not a guarantee.
 
 **Phase 7 — PR opening** *([Doc and PR Discipline](#doc-and-pr-discipline))*
 Have the agent draft the PR description from the spec and diff: goal, summary of changes, non-obvious decisions and why, what was explicitly not changed, and a link to the spec. You edit for accuracy and tone, then open the PR. A reviewer who can read your reasoning in thirty seconds is faster and more useful than one reconstructing it from the diff.
@@ -464,7 +528,7 @@ Have the agent draft the PR description from the spec and diff: goal, summary of
 **Phase 8 — Merge**
 Standard human review on the PR. No agent involvement at this phase. Merge when green.
 
-**Principles invoked:** [1 — Manage context aggressively](best-practices.md#1-manage-context-aggressively); [2 — Match autonomy to phase and blast radius](best-practices.md#2-match-autonomy-to-phase--blast-radius); [3 — Verify with fresh eyes](best-practices.md#3-verify-with-fresh-eyes); [5 — Tests are leverage](best-practices.md#5-tests-are-leverage); [6 — Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose)
+**Principles invoked:** [1 — Manage context aggressively](best-practices.md#1-manage-context-aggressively); [2 — Match autonomy to phase and blast radius](best-practices.md#2-match-autonomy-to-phase--blast-radius); [3 — Verify with fresh eyes](best-practices.md#3-verify-with-fresh-eyes); [5 — Tests are leverage](best-practices.md#5-tests-are-leverage); [6 — Enforce with hooks and config, not prose](best-practices.md#6-enforce-with-hooks-and-config-not-prose); [7 — Reduce architectural ambiguity, not just complexity](best-practices.md#7-reduce-architectural-ambiguity-not-just-complexity)
 
 ### Modifying legacy code safely
 
@@ -497,7 +561,7 @@ This triage step is the unique value of the pinning approach. Without it, a suit
 Legacy code is where cross-model review matters most. The agent that made the change has accumulated framing about what the code should do — framing that may have subtly colored which behaviors it treated as intentional versus incidental. A fresh-context agent with a different model sees the diff without that history. Give it the original behavior inventory, the diff, and the list of behavior changes; ask what was missed or misread, not whether the change looks correct.
 
 **Phase 8 — PR with explicit behavior-change notes** *([Doc and PR Discipline](#doc-and-pr-discipline))*
-The PR description for a legacy change needs two explicit sections that new-feature PRs often skip: which behaviors changed (with before/after descriptions) and which behaviors were explicitly preserved. Reviewers cannot diff behavior from code alone; you have to surface it. A reviewer who can read "function X no longer swallows errors from Y — it now propagates them" takes thirty seconds to evaluate that decision. One reconstructing it from the diff takes much longer and may miss it entirely.
+The PR description for a legacy change needs two explicit sections that new-feature PRs often skip: which behaviors changed (with before/after descriptions) and which behaviors were explicitly preserved. Reviewers cannot diff behavior from code alone; you have to surface it. A reviewer who can read "function X no longer swallows errors from Y — it now propagates them" takes thirty seconds to evaluate that decision. One reconstructing it from the diff takes much longer and may miss it entirely. Legacy code is often the code a future agent will imitate: if the change leaves an area that still doesn't follow current conventions, mark it "do not imitate" in AGENTS.md (see [Opinionated Architecture](#opinionated-architecture)).
 
 **Principles invoked:** [1 — Manage context aggressively](best-practices.md#1-manage-context-aggressively); [2 — Match autonomy to phase and blast radius](best-practices.md#2-match-autonomy-to-phase--blast-radius); [3 — Verify with fresh eyes](best-practices.md#3-verify-with-fresh-eyes); [5 — Tests are leverage](best-practices.md#5-tests-are-leverage)
 
@@ -591,7 +655,7 @@ These are workflow-level questions we haven't answered yet — about how the tea
 
 2. **What's the right cadence for revisiting these docs?** Quarterly review, triggered by an incident, or something else? The field moves fast enough that a doc written six months ago may be describing tools and patterns that no longer reflect what we actually use — but scheduled reviews have a way of becoming empty rituals. We should decide what triggers a meaningful revision.
 
-3. **When does a pattern graduate to a hook?** When we've been applying a practice consistently across several projects, at what point do we encode it into automation — a hook, a permissions profile, a repo template — rather than continuing to rely on the team following a doc? There's a cost to premature encoding (inflexibility) and to delayed encoding (drift). We haven't articulated where that line is.
+3. **When does a pattern graduate to a hook?** When we've been applying a practice consistently across several projects, at what point do we encode it into automation — a hook, a permissions profile, a repo template — rather than continuing to rely on the team following a doc? There's a cost to premature encoding (inflexibility) and to delayed encoding (drift). We haven't articulated where that line is. For architecture conventions, one reasonable heuristic — a heuristic, not an answer: a convention that is stable, mechanically detectable, and already violated more than once is a candidate for an [executable rule](#executable-architecture-rules); practices that depend on judgment stay in review. The general question, for workflow practices as much as code structure, is still open.
 
 4. **What signals tell us that a doc has gone stale and needs refresh?** Someone asks a question the doc should answer but doesn't. A pattern in the field guide contradicts how we're actually working. A new tool renders an existing recommendation obsolete. These signals exist; we don't yet have a habit of acting on them.
 

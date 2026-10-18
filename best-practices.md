@@ -72,22 +72,24 @@ The two layers compose. Layer 1 protects against the agent invoking a bad comman
 
 ### 7. Reduce architectural ambiguity, not just complexity
 
-The architectural cost an agent pays isn't counted in layers, files, or frameworks. It's counted in open decisions. Every feature that makes the agent choose where the code goes, which module owns it, how modules talk, and how errors, validation, auth, and tests are handled is a chance to drift, and each fresh-context agent re-derives the architecture from whatever code it reads (Principles 1 and 3). An architecture that answers those questions up front gives a repeatable path, so the agent spends its effort on the business problem. Convention over configuration is the right instinct here, and opinionated frameworks are worth their constraints, for the same reason: a convention is a decision nobody has to make again. That matters more when agents write most of the code.
+The architectural cost an agent pays isn't counted in layers, files, or frameworks. It's counted in open decisions. Every feature that makes the agent choose where code goes, how modules talk, or how errors, validation, auth, and tests work is a chance to drift, because each fresh-context agent re-derives the architecture from the code it reads (Principles 1 and 3). An architecture that answers those questions up front gives a repeatable path, so the agent spends its effort on the business problem. Convention over configuration is the right instinct here, and opinionated frameworks are worth their constraints, for the same reason: a convention is a decision nobody has to make again.
 
-The codebase is the agent's teaching material. Agents learn from what's already there, so consistent features compound into a growing set of examples to follow. Inconsistency and bad patterns propagate the same way. So reference implementations have to be deliberately designed, reviewed, and maintained. This matters most for products that grow across many sessions and parallel agents, where no single agent holds the whole picture.
+The payoff is economic as well as consistent. The fewer decisions a task leaves open, the smaller, cheaper, and faster the model that can do it reliably. When the code keeps agents on track, you don't need a slower, more expensive top-tier model for every task: a top-tier agent plans, coordinates, and checks the work, while mid-tier or fast models implement and test. See [Choosing Model, Vendor, Effort](field-guide.md#choosing-model-vendor-effort).
 
-Conventions that can be checked mechanically belong in compile-time boundaries, architecture tests, and CI, not only in AGENTS.md. That's Principle 6 applied to what the code may become rather than what the agent may do.
+The codebase is the agent's teaching material. Consistent features compound into a growing set of examples to follow; inconsistency and bad patterns propagate the same way, so reference implementations have to be deliberately designed, reviewed, and maintained. This matters most for products that grow across many sessions and parallel agents.
 
-Proportionality matters as much as consistency: the goal is the minimum architecture that establishes repeatable, enforceable conventions for the product's expected lifetime and growth. Structure that removes a decision the agent would otherwise make is productive complexity; structure that adds indirection without removing one is accidental complexity. [Opinionated Architecture](field-guide.md#opinionated-architecture) has both lists. A script needs none of this; a product heading toward hundreds of features needs most of it.
+Conventions that can be checked mechanically belong in compile-time boundaries, architecture tests, and CI, not only in AGENTS.md (Principle 6).
+
+Proportionality matters as much as consistency: the goal is the minimum architecture that establishes repeatable, enforceable conventions for the product's expected lifetime and growth. Structure that removes a decision the agent would otherwise make is productive complexity; structure that adds indirection without removing one is accidental. [Opinionated Architecture](field-guide.md#opinionated-architecture) has both lists and two example stacks. A script needs none of this; a product heading toward hundreds of features needs most of it.
 
 **In practice:**
-- Write down the answers to the recurring "where does this go, how is it done here" questions, in one place the agent reads
-- Keep a few reference features that show each convention end to end; mark areas that don't follow them "do not imitate"
-- Routine decisions are autonomous; architectural ones get approval (see Principle 2)
+- Answer the recurring "where does this go, how is it done here" questions once, where the agent reads them
+- Keep a few reference features that show each convention; mark areas that don't follow them "do not imitate"
+- Routine decisions are autonomous; architectural ones get approval (Principle 2)
 - Enforce the mechanical parts in CI; keep judgment calls in review
 - Scale the architecture to the product, not the other way round
 
-See [Opinionated Architecture](field-guide.md#opinionated-architecture), [Executable Architecture Rules](field-guide.md#executable-architecture-rules), and [Right-size the architecture](working-with-ai.md#right-size-the-architecture). Worked examples: a [.NET modular monolith](examples/dotnet-modular-monolith.md) and a [Vue feature architecture](examples/vue-feature-architecture.md).
+See [Executable Architecture Rules](field-guide.md#executable-architecture-rules) and [Right-size the architecture](working-with-ai.md#right-size-the-architecture).
 
 ## 3. Contributing and Sharing
 

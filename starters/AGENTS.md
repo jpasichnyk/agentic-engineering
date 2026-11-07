@@ -24,6 +24,8 @@ Guidance for AI agents working in this project. Read at session start.
 ## Code and changes
 - **Plan non-trivial work first.** Write the plan down before executing.
 - **Check for an existing spec before inventing.** If there's a plan, design doc, or spec for what you're implementing, follow it. If you can't find one, ask before inventing an approach.
+- **Follow the established feature path.** Before adding a feature, find the owning module and the nearest reference implementation, and follow its structure. Don't introduce a new framework, module boundary, persistence technology, or cross-module communication path without approval — that's an architectural decision (see *Decision authority* below).
+- **Don't imitate code marked legacy or "do not imitate."** Consistency with a bad pattern is still a bad pattern. If the nearest example looks wrong, ask rather than copy it.
 - **Don't reformat code you didn't touch.** When modifying an existing file, match the surrounding style exactly. Don't reformat lines you didn't intentionally change — it inflates diffs, masks the real change, and creates merge conflicts for no reason.
 - **Every commit and PR should compile and run independently.** Don't leave the codebase in a broken intermediate state.
 - **Update docs alongside code, not after.** README sections, ADRs, inline comments at non-obvious decision points, and the relevant AGENTS.md if behavior changes — all updated in the same commit as the code.
@@ -91,6 +93,19 @@ The categories below capture the kinds of rules that vary by project and don't g
 *"Use X, not Y" rules that prevent lockfile drift, version mismatches, or environment skew.*
 - _Example: Use `bun`, not `npm` or `yarn`. The repo's lockfile is `bun.lockb`._
 - _Example: Python deps managed via `uv`; don't `pip install` directly._
+
+### Architecture and where things go
+*The module map, the standard feature recipe, and the reference implementations to read before adding anything. Answer "where does this go and how is it done here?" once, so a fresh agent doesn't re-decide it on every feature.*
+- _Example: Modules — `Users`, `Reporting`, `Billing`, `Notifications`. Each owns its logic and data; other modules use its `*.Contracts` project only._
+- _Example: New backend operation → contract in `Reporting.Contracts`, consumer in `Reporting`, thin endpoint in `Api`. Read `src/Modules/Reporting/GetReport*` first._
+- _Example: New screen → `src/features/<feature>/pages`, data through a feature composable, UI from the design system only. Read `src/features/reports/` first._
+- _Example: Do not imitate — `src/legacy/` predates the module structure._
+
+### Decision authority
+*Which decisions you can make alone and which need a human. Move items between tiers to fit this project: a mature team may make new internal abstractions routine; a regulated codebase may make any new dependency architectural.*
+- **Routine** — go ahead. _Example: new operation in an existing module, new component from the design system, tests following existing patterns._
+- **Local design** — go ahead, and justify it in the PR. _Example: new internal service or helper, reusable composable, refactoring a feature's internals._
+- **Architectural** — ask first. _Example: new framework or major dependency, new or redrawn module boundary, bypassing contracts, new cross-module communication path, new persistence technology, separately deployed service, replacing the design system._
 
 ### Off-limits paths and modules
 *Files or directories that need extra care or explicit human approval before modification.*
